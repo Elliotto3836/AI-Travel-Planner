@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env files
+.env
+frontend/.env
+backend/.env
+
+# Build folders
+frontend/build/
+backend/dist/
+
+# MacOS / VSCode
+.DS_Store
+.vscode/
