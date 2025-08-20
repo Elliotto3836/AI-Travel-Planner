@@ -21,7 +21,7 @@ The frontend is built with **React**, **Vite**, and **Tailwind CSS 4.0**, and th
 
 * **Frontend:** React, Vite, Tailwind CSS 4.0
 * **Backend:** Node.js, Express
-* **AI:** OpenAI API
+* **AI:** OpenAI GPT-5 mini API
 
 ---
 
