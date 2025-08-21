@@ -2,18 +2,16 @@
 
 A full-stack web application that generates AI-powered travel itineraries based on destination, number of days, and user interests.
 
-The frontend is built with **React**, **Vite**, and **Tailwind CSS 4.0**, and the backend uses **Node.js + Express** with integration to the **OpenAI API** for AI-generated itineraries.
+The frontend is built with **React**, **Vite**, and **Tailwind CSS 4.0**, and the backend uses **Node.js + Express** with integration to **GPT-5 mini** for AI-generated itineraries.
 
 ---
 
 ## Features
 
 * Enter destination, number of days, and interests
-* Generate multi-day itineraries using AI
+* Generate multi-day itineraries using GPT-5 mini
 * Interactive and responsive UI
 * Polished design with Tailwind CSS
-* Loading spinner while generating itineraries
-* Optional: download or copy itineraries (future enhancement)
 
 ---
 
