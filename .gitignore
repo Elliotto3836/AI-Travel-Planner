@@ -19,3 +19,7 @@ backend/dist/
 # MacOS / VSCode
 .DS_Store
 .vscode/
+
+
+#misc
+TODO.rtf
