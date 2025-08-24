@@ -113,7 +113,7 @@ function App() {
     setItinerary({});
 
     try {
-      const res = await fetch("http://localhost:63930/api/generate-itinerary", {
+      const res = await fetch("http://localhost:56185/api/generate-itinerary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ destination, days, interests }),
@@ -252,22 +252,34 @@ function SortableItem({ id, activity, onEdit, onRemove }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className="flex items-center gap-2 mb-2 w-full"
+      className="flex items-center gap-2 mb-2 w-full bg-white dark:bg-gray-800 p-2 rounded shadow"
     >
+      {/* Drag Handle */}
+      <span
+        {...attributes}
+        {...listeners}
+        className="cursor-grab text-gray-500 dark:text-gray-300 px-2"
+      >
+        ⠿
+      </span>
+
+      {/* Time Input */}
       <input
         type="text"
         value={activity.time}
         onChange={(e) => onEdit("time", e.target.value)}
         className="w-28 border rounded p-2 text-sm dark:bg-gray-600 dark:text-gray-100"
       />
+
+      {/* Activity Input */}
       <input
         type="text"
         value={activity.activity}
         onChange={(e) => onEdit("activity", e.target.value)}
         className="flex-1 border rounded p-2 text-sm dark:bg-gray-600 dark:text-gray-100"
       />
+
+      {/* Remove Button */}
       <button onClick={onRemove} className="text-red-500 font-bold">✕</button>
     </div>
   );
