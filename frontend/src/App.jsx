@@ -374,6 +374,7 @@ function SortableItem({ id, activity, container }) {
   );
 }
 
+
 function DayActivity({ activity, day, editActivity, removeActivity }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
@@ -390,19 +391,19 @@ function DayActivity({ activity, day, editActivity, removeActivity }) {
   return (
     <div className="relative">
       {isDragging && (
-        <div
-          className="absolute inset-0 border-dashed border-2 border-gray-300 dark:border-gray-600 rounded"
-          style={{ height: "100%" }}
-        ></div>
+        <div className="absolute inset-0 border-dashed border-2 border-gray-300 dark:border-gray-600 rounded"
+          style={{ height: "100%" }}></div>
       )}
       <div
         ref={setNodeRef}
         style={style}
-        {...attributes}
-        {...listeners}
-        className="flex items-center gap-2 mb-2 p-2 border rounded bg-gray-50 dark:bg-gray-700 cursor-move select-none"
+        className="flex items-center gap-2 mb-2 p-2 border rounded bg-gray-50 dark:bg-gray-700 select-none"
       >
-        <div className="cursor-move">☰</div>
+        {/* Drag Handle - only here! */}
+        <div {...attributes} {...listeners} className="cursor-move">
+          ☰
+        </div>
+
         <input
           type="text"
           value={activity.time}
@@ -415,12 +416,15 @@ function DayActivity({ activity, day, editActivity, removeActivity }) {
           onChange={(e) => editActivity(day, activity.id, "activity", e.target.value)}
           className="flex-1 border rounded p-1 text-sm dark:bg-gray-600 dark:text-gray-100"
         />
-        <button onClick={() => removeActivity(day, activity.id)} className="text-red-500 font-bold">
+        <button onClick={() => removeActivity(day, activity.id)}
+        className="text-red-500 font-bold cursor-pointer"
+          type="button">
           ✕
         </button>
       </div>
     </div>
   );
 }
+
 
 export default App;
