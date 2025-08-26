@@ -54,7 +54,6 @@ function App() {
     setItinerary({});
     setItineraryGenerated(false);
 
-
     try {
       const API_URL = import.meta.env.VITE_API_URL;
 
@@ -200,7 +199,6 @@ function App() {
           by Elliot Zheng
         </p>
       </div>
-
 
       <DndContext
         sensors={sensors}
@@ -366,23 +364,22 @@ function SortableItem({ id, activity, container }) {
     </div>
   );
 }
+
 function DayActivity({ activity, day, editActivity, removeActivity }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
     data: { container: day, activity },
   });
 
-  // style for actual item
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0 : 1, // hide original while dragging
+    opacity: isDragging ? 0 : 1,
     zIndex: isDragging ? 999 : "auto",
   };
 
   return (
     <div className="relative">
-      {/* Placeholder div to prevent jumping */}
       {isDragging && (
         <div
           className="absolute inset-0 border-dashed border-2 border-gray-300 dark:border-gray-600 rounded"
@@ -416,6 +413,5 @@ function DayActivity({ activity, day, editActivity, removeActivity }) {
     </div>
   );
 }
-
 
 export default App;
