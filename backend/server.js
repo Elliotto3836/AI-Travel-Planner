@@ -28,7 +28,7 @@ app.post('/api/generate-itinerary', async (req, res) => {
   }
 
   const prompt = `
-You are an AI travel planner. Generate a ${days}-day itinerary for ${destination} with interests: ${interests}.
+You are an AI travel planner. Generate a realistic ${days}-day itinerary for ${destination} with interests: ${interests}.
 Follow these rules strictly:
 - Output **valid JSON only**. Do NOT include any extra text, comments, or explanation.
 - Format exactly as follows:
