@@ -54,8 +54,11 @@ function App() {
     setItinerary({});
     setItineraryGenerated(false);
 
+
     try {
-      const res = await fetch("http://localhost:52502/api/generate-itinerary", {
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      const res = await fetch(`${API_URL}/api/generate-itinerary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ destination, days, interests }),
@@ -84,7 +87,9 @@ function App() {
     setLoadingExtra(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:52502/api/generate-suggestions", {
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      const res = await fetch(`${API_URL}/api/generate-suggestions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ destination, interests }),
