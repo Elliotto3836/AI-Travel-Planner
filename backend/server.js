@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import getPort from "get-port";
 
-dotenv.config(); // Load API key from .env
+dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -14,7 +14,6 @@ app.get('/ping', (req, res) => {
   res.send('Backend is running!');
 });
 
-// OpenAI API setup
 if (!process.env.OPENAI_API_KEY) {
   console.error('OPENAI_API_KEY is not set in .env file');
   process.exit(1);
@@ -28,7 +27,7 @@ app.post('/api/generate-itinerary', async (req, res) => {
     return res.status(400).json({ error: 'Please provide destination, days, and interests' });
   }
 
-const prompt = `
+  const prompt = `
 You are an AI travel planner. Generate a ${days}-day itinerary for ${destination} with interests: ${interests}.
 Follow these rules strictly:
 - Output **valid JSON only**. Do NOT include any extra text, comments, or explanation.
@@ -50,19 +49,12 @@ Follow these rules strictly:
 - Keep the activities realistic and enjoyable, considering ${interests}.
 `;
 
-const completion = await openai.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: prompt }],
-});
-
-
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
     });
 
-    // Parse GPT response as JSON
     const itinerary = JSON.parse(response.choices[0].message.content);
     res.json(itinerary);
   } catch (error) {
@@ -70,21 +62,53 @@ const completion = await openai.chat.completions.create({
     res.status(500).json({ error: 'Failed to generate itinerary' });
   }
 });
+app.post('/api/generate-suggestions', async (req, res) => {
+  const { destination, interests } = req.body;
 
+  if (!destination || !interests) {
+    return res.status(400).json({ error: 'Please provide destination and interests' });
+  }
 
-app.get('/', (req, res) => {
-  res.redirect('http://localhost:65535'); // Adjust the URL as needed
+  const prompt = `
+You are an AI travel assistant. Suggest 8–12 extra activities for ${destination} considering interests: ${interests}.
+Follow these rules strictly:
+- Output **valid JSON only**.
+- Format as a JSON array of strings:
+[
+  "Activity 1",
+  "Activity 2",
+  "Activity 3"
+]
+- Do NOT include times or assign them to specific days.
+- Keep activities realistic, fun, and specific.
+`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const suggestions = JSON.parse(response.choices[0].message.content);
+
+    if (!Array.isArray(suggestions)) {
+      throw new Error('Response was not an array');
+    }
+
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Error generating suggestions:', error);
+    res.status(500).json({ error: 'Failed to generate suggestions' });
+  }
 });
 
-
-
-// Your middleware & routes here
-// e.g., app.use(express.json());
+app.get('/', (req, res) => {
+  res.redirect('http://localhost:52502');
+});
 
 async function startServer() {
-  // Try 5000 first, otherwise pick any free port
-  const port = await getPort({ port: 5000 });
-
+  //const port = await getPort({ port: 5000 });
+  const port = 52502;
   app.listen(port, () => {
     console.log(`Backend running on port ${port}`);
   });

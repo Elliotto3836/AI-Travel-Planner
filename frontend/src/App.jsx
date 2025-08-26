@@ -5,6 +5,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -19,11 +20,16 @@ function App() {
   const [days, setDays] = useState(1);
   const [interests, setInterests] = useState("");
   const [itinerary, setItinerary] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [extraActivities, setExtraActivities] = useState([]);
+  const [extraPanelVisible, setExtraPanelVisible] = useState(true);
+  const [itineraryGenerated, setItineraryGenerated] = useState(false);
+  const [loadingItinerary, setLoadingItinerary] = useState(false);
+  const [loadingExtra, setLoadingExtra] = useState(false);
   const [error, setError] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [activeDrag, setActiveDrag] = useState(null);
 
-  // Dark mode
+  // Dark mode setup
   useEffect(() => {
     const saved = localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -41,45 +47,83 @@ function App() {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-    const [activeDay, activeId] = active.id.split(":");
-    const [overDay, overId] = over.id.split(":");
+  const generateItinerary = async (e) => {
+    e.preventDefault();
+    setLoadingItinerary(true);
+    setError("");
+    setItinerary({});
+    setItineraryGenerated(false);
 
-    if (activeDay === overDay) {
-      const oldIndex = itinerary[activeDay].findIndex((a) => a.id === activeId);
-      const newIndex = itinerary[overDay].findIndex((a) => a.id === overId);
-      setItinerary((prev) => ({
-        ...prev,
-        [activeDay]: arrayMove(prev[activeDay], oldIndex, newIndex),
-      }));
-    } else {
-      const activeItem = itinerary[activeDay].find((a) => a.id === activeId);
-      setItinerary((prev) => {
-        const newActive = prev[activeDay].filter((a) => a.id !== activeId);
-        const insertIndex = prev[overDay].findIndex((a) => a.id === overId);
-        const newOver = [...prev[overDay]];
-        newOver.splice(insertIndex, 0, activeItem);
-        return { ...prev, [activeDay]: newActive, [overDay]: newOver };
+    try {
+      const res = await fetch("http://localhost:52502/api/generate-itinerary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination, days, interests }),
       });
+      if (!res.ok) throw new Error("Failed to generate itinerary");
+      const data = await res.json();
+
+      const dataWithIds = {};
+      Object.entries(data).forEach(([day, acts], dayIdx) => {
+        dataWithIds[day] = acts.map((a, idx) => ({
+          ...a,
+          id: `d${dayIdx}-${idx}-${Date.now()}`,
+        }));
+      });
+      setItinerary(dataWithIds);
+      setItineraryGenerated(true);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoadingItinerary(false);
     }
   };
 
-  const handleEdit = (day, id, field, value) => {
-    setItinerary((prev) => ({
-      ...prev,
-      [day]: prev[day].map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      ),
-    }));
+  const generateExtraActivities = async () => {
+    setLoadingExtra(true);
+    setError("");
+    try {
+      const res = await fetch("http://localhost:52502/api/generate-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination, interests }),
+      });
+      if (!res.ok) throw new Error("Failed to generate extra activities");
+      const data = await res.json();
+      if (!Array.isArray(data.suggestions)) throw new Error("Invalid suggestions format");
+
+      const dataWithIds = data.suggestions.map((s) => ({
+        id: `extra-${Date.now()}-${Math.random()}`,
+        activity: s,
+        time: "",
+      }));
+      setExtraActivities(dataWithIds);
+      setExtraPanelVisible(true);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoadingExtra(false);
+    }
+  };
+
+  const addDay = () => {
+    const dayNum = Object.keys(itinerary).length + 1;
+    setItinerary((prev) => ({ ...prev, [`Day ${dayNum}`]: [] }));
+  };
+
+  const removeDay = (day) => {
+    const copy = { ...itinerary };
+    delete copy[day];
+    setItinerary(copy);
   };
 
   const addActivity = (day) => {
     const newActivity = {
       id: `${day}-${Date.now()}`,
       time: "9:00 AM",
-      activity: "New activity",
+      activity: "New Activity",
     };
     setItinerary((prev) => ({
       ...prev,
@@ -94,45 +138,42 @@ function App() {
     }));
   };
 
-  const addDay = () => {
-    const dayNum = Object.keys(itinerary).length + 1;
-    const dayKey = `Day ${dayNum}`;
-    setItinerary((prev) => ({ ...prev, [dayKey]: [] }));
+  const editActivity = (day, id, field, value) => {
+    setItinerary((prev) => ({
+      ...prev,
+      [day]: prev[day].map((a) => (a.id === id ? { ...a, [field]: value } : a)),
+    }));
   };
 
-  const removeDay = (day) => {
-    const copy = { ...itinerary };
-    delete copy[day];
-    setItinerary(copy);
-  };
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over) return;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setItinerary({});
+    const sourceContainer = active.data.current.container;
+    const targetContainer = over.data.current.container;
 
-    try {
-      const res = await fetch("http://localhost:56185/api/generate-itinerary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destination, days, interests }),
-      });
-      if (!res.ok) throw new Error("Failed to generate itinerary");
-      const data = await res.json();
-      const dataWithIds = {};
-      Object.entries(data).forEach(([day, acts], dayIdx) => {
-        dataWithIds[day] = acts.map((a, idx) => ({
-          ...a,
-          id: `d${dayIdx}-${idx}-${Date.now()}`,
-        }));
-      });
-      setItinerary(dataWithIds);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+    // Extra → Day
+    if (sourceContainer === "extra" && targetContainer.startsWith("Day")) {
+      const idx = extraActivities.findIndex((a) => a.id === active.id);
+      if (idx === -1) return;
+      const activity = extraActivities[idx];
+      setExtraActivities((prev) => prev.filter((a) => a.id !== active.id));
+      setItinerary((prev) => ({
+        ...prev,
+        [targetContainer]: [...(prev[targetContainer] || []), activity],
+      }));
+      return;
+    }
+
+    // Reorder within same day
+    if (sourceContainer.startsWith("Day") && sourceContainer === targetContainer) {
+      const list = [...itinerary[sourceContainer]];
+      const oldIndex = list.findIndex((a) => a.id === active.id);
+      const newIndex = list.findIndex((a) => a.id === over.id);
+      setItinerary((prev) => ({
+        ...prev,
+        [sourceContainer]: arrayMove(list, oldIndex, newIndex),
+      }));
     }
   };
 
@@ -145,144 +186,231 @@ function App() {
         {darkMode ? "🌞" : "🌙"}
       </button>
 
-      <h1 className="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-gray-100">
-        AI Travel Planner!
-      </h1>
-
-      {/* Form */}
-      <div className="w-full mb-8 px-4">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
-          <input
-            type="text"
-            placeholder="Destination"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            className="w-full p-3 border rounded dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-400"
-            required
-          />
-          <input
-            type="number"
-            placeholder="Days"
-            value={days}
-            onChange={(e) => setDays(e.target.value)}
-            className="w-full p-3 border rounded dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-400"
-            min={1}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Interests (comma-separated)"
-            value={interests}
-            onChange={(e) => setInterests(e.target.value)}
-            className="w-full p-3 border rounded dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-400"
-          />
-          <button
-            type="submit"
-            className="p-3 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? "Generating..." : "Generate Itinerary"}
-          </button>
-        </form>
-        {error && <p className="text-red-500 mt-4">{error}</p>}
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+          AI Travel Planner!
+        </h1>
+        <p className="text-lg text-gray-700 dark:text-gray-300 mt-1">
+          by Elliot Zheng
+        </p>
       </div>
 
-      {/* Add day button */}
-      <div className="w-full mb-6 flex justify-between items-center px-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Itinerary</h2>
-        <button
-          onClick={addDay}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          + Add Day
-        </button>
-      </div>
 
-      {/* Itinerary */}
-      {Object.keys(itinerary).length > 0 && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          {Object.keys(itinerary).map((day) => (
-            <div key={day} className="w-full mb-6 px-4">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={(event) => {
+          const activity = event.active.data.current?.activity || null;
+          setActiveDrag({ ...event.active, activity });
+        }}
+        onDragEnd={(event) => {
+          handleDragEnd(event);
+          requestAnimationFrame(() => setActiveDrag(null));
+        }}
+      >
+        <div className="flex gap-4 px-4 relative">
+          {/* Extra Panel */}
+          {itineraryGenerated && extraActivities.length > 0 && (
+            <div
+              className={`w-80 bg-gray-200 dark:bg-gray-800 p-4 border-l sticky top-0 h-screen flex-shrink-0 overflow-y-auto transform transition-transform duration-300 ${
+                extraPanelVisible ? "translate-x-0" : "translate-x-full"
+              }`}
+            >
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{day}</h3>
-                <button onClick={() => removeDay(day)} className="text-red-500 hover:text-red-700">
-                  Remove Day
-                </button>
+                <h3 className="text-lg font-semibold dark:text-gray-100">Extra Activities</h3>
+                <button onClick={() => setExtraPanelVisible(false)}>Hide</button>
               </div>
-
-              <SortableContext
-                items={itinerary[day].map((a) => `${day}:${a.id}`)}
-                strategy={verticalListSortingStrategy}
-              >
-                {itinerary[day].map((activity) => (
-                  <SortableItem
-                    key={activity.id}
-                    id={`${day}:${activity.id}`}
-                    activity={activity}
-                    onEdit={(field, value) => handleEdit(day, activity.id, field, value)}
-                    onRemove={() => removeActivity(day, activity.id)}
-                  />
+              <SortableContext items={extraActivities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                {extraActivities.map((activity) => (
+                  <SortableItem key={activity.id} id={activity.id} activity={activity} container="extra" />
                 ))}
               </SortableContext>
-
-              <button
-                onClick={() => addActivity(day)}
-                className="mt-3 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-              >
-                + Add Activity
-              </button>
             </div>
-          ))}
-        </DndContext>
-      )}
+          )}
+
+          {/* Show Panel Button on left */}
+          {!extraPanelVisible && itineraryGenerated && extraActivities.length > 0 && (
+            <button
+              onClick={() => setExtraPanelVisible(true)}
+              className="fixed top-40 left-4 bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 z-50"
+            >
+              Show Extra Activities
+            </button>
+          )}
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Form */}
+            <form onSubmit={generateItinerary} className="flex flex-col gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="Destination"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                className="p-2 border rounded dark:bg-gray-700 dark:text-gray-100"
+                required
+              />
+              <input
+                type="number"
+                placeholder="Days"
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                className="p-2 border rounded dark:bg-gray-700 dark:text-gray-100"
+                min={1}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Interests (comma-separated)"
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+                className="p-2 border rounded dark:bg-gray-700 dark:text-gray-100"
+              />
+              <button
+                type="submit"
+                className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                disabled={loadingItinerary}
+              >
+                {loadingItinerary ? "Generating..." : "Generate Itinerary"}
+              </button>
+              {error && <p className="text-red-500">{error}</p>}
+            </form>
+
+            {/* Days */}
+            {Object.keys(itinerary).map((day) => (
+              <div key={day} className="mb-4 p-4 border rounded bg-white dark:bg-gray-800">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold">{day}</h3>
+                  <button onClick={() => removeDay(day)} className="text-red-500">Remove Day</button>
+                </div>
+                <SortableContext items={itinerary[day].map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                  {itinerary[day].map((activity) => (
+                    <DayActivity
+                      key={activity.id}
+                      activity={activity}
+                      day={day}
+                      editActivity={editActivity}
+                      removeActivity={removeActivity}
+                    />
+                  ))}
+                </SortableContext>
+                <button
+                  onClick={() => addActivity(day)}
+                  className="mt-2 bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                >
+                  + Add Activity
+                </button>
+              </div>
+            ))}
+
+            {/* Controls */}
+            <div className="flex gap-2">
+              <button onClick={addDay} className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">+ Add Day</button>
+              {itineraryGenerated && (
+                <button
+                  onClick={generateExtraActivities}
+                  className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600"
+                >
+                  {loadingExtra ? "Generating..." : "+ Generate Extra Activities"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeDrag?.activity && (
+            <div
+              className="flex items-center gap-2 p-2 border rounded bg-gray-50 dark:bg-gray-700 shadow-2xl scale-105 select-none"
+              style={{ transform: "scale(1.05)", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
+            >
+              {activeDrag.activity.activity}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
 
-function SortableItem({ id, activity, onEdit, onRemove }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+// Sortable Extra Item
+function SortableItem({ id, activity, container }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    data: { container, activity },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 999 : "auto",
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 mb-2 w-full bg-white dark:bg-gray-800 p-2 rounded shadow"
+      {...attributes}
+      {...listeners}
+      className="flex items-center gap-2 mb-2 p-2 border rounded bg-gray-50 dark:bg-gray-700 cursor-move select-none"
     >
-      {/* Drag Handle */}
-      <span
-        {...attributes}
-        {...listeners}
-        className="cursor-grab text-gray-500 dark:text-gray-300 px-2"
-      >
-        ⠿
-      </span>
-
-      {/* Time Input */}
-      <input
-        type="text"
-        value={activity.time}
-        onChange={(e) => onEdit("time", e.target.value)}
-        className="w-28 border rounded p-2 text-sm dark:bg-gray-600 dark:text-gray-100"
-      />
-
-      {/* Activity Input */}
-      <input
-        type="text"
-        value={activity.activity}
-        onChange={(e) => onEdit("activity", e.target.value)}
-        className="flex-1 border rounded p-2 text-sm dark:bg-gray-600 dark:text-gray-100"
-      />
-
-      {/* Remove Button */}
-      <button onClick={onRemove} className="text-red-500 font-bold">✕</button>
+      ☰ {activity.activity}
     </div>
   );
 }
+function DayActivity({ activity, day, editActivity, removeActivity }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: activity.id,
+    data: { container: day, activity },
+  });
+
+  // style for actual item
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0 : 1, // hide original while dragging
+    zIndex: isDragging ? 999 : "auto",
+  };
+
+  return (
+    <div className="relative">
+      {/* Placeholder div to prevent jumping */}
+      {isDragging && (
+        <div
+          className="absolute inset-0 border-dashed border-2 border-gray-300 dark:border-gray-600 rounded"
+          style={{ height: "100%" }}
+        ></div>
+      )}
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="flex items-center gap-2 mb-2 p-2 border rounded bg-gray-50 dark:bg-gray-700 cursor-move select-none"
+      >
+        <div className="cursor-move">☰</div>
+        <input
+          type="text"
+          value={activity.time}
+          onChange={(e) => editActivity(day, activity.id, "time", e.target.value)}
+          className="w-24 border rounded p-1 text-sm dark:bg-gray-600 dark:text-gray-100"
+        />
+        <input
+          type="text"
+          value={activity.activity}
+          onChange={(e) => editActivity(day, activity.id, "activity", e.target.value)}
+          className="flex-1 border rounded p-1 text-sm dark:bg-gray-600 dark:text-gray-100"
+        />
+        <button onClick={() => removeActivity(day, activity.id)} className="text-red-500 font-bold">
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 export default App;
