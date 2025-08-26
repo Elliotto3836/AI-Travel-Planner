@@ -95,7 +95,7 @@ Follow these rules strictly:
       throw new Error('Response was not an array');
     }
 
-    res.json(suggestions);
+    res.json({suggestions});
   } catch (error) {
     console.error('Error generating suggestions:', error);
     res.status(500).json({ error: 'Failed to generate suggestions' });
