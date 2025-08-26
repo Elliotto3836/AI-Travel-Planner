@@ -48,39 +48,46 @@ function App() {
   const sensors = useSensors(useSensor(PointerSensor));
 
   const generateItinerary = async (e) => {
-    e.preventDefault();
-    setLoadingItinerary(true);
-    setError("");
-    setItinerary({});
-    setItineraryGenerated(false);
+  e.preventDefault();
+  setLoadingItinerary(true);
+  setError("");
+  setItinerary({});
+  setItineraryGenerated(false);
 
-    try {
-      const API_URL = import.meta.env.VITE_API_URL;
+  try {
+    const API_URL = import.meta.env.VITE_API_URL;
 
-      const res = await fetch(`${API_URL}/api/generate-itinerary`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destination, days, interests }),
-      });
-      if (!res.ok) throw new Error("Failed to generate itinerary");
-      const data = await res.json();
+    console.log("They are " + interests);
 
-      const dataWithIds = {};
-      Object.entries(data).forEach(([day, acts], dayIdx) => {
-        dataWithIds[day] = acts.map((a, idx) => ({
-          ...a,
-          id: `d${dayIdx}-${idx}-${Date.now()}`,
-        }));
-      });
-      setItinerary(dataWithIds);
-      setItineraryGenerated(true);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoadingItinerary(false);
-    }
-  };
+    const interestsToSend = interests.trim() === "" ? "general sightseeing" : interests;
+
+    const res = await fetch(`${API_URL}/api/generate-itinerary`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ destination, days, interests: interestsToSend }),
+    });
+
+    if (!res.ok) throw new Error("Failed to generate itinerary");
+    const data = await res.json();
+
+    const dataWithIds = {};
+    Object.entries(data).forEach(([day, acts], dayIdx) => {
+      dataWithIds[day] = acts.map((a, idx) => ({
+        ...a,
+        id: `d${dayIdx}-${idx}-${Date.now()}`,
+      }));
+    });
+
+    setItinerary(dataWithIds);
+    setItineraryGenerated(true);
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "Something went wrong");
+  } finally {
+    setLoadingItinerary(false);
+  }
+};
+
 
   const generateExtraActivities = async () => {
     setLoadingExtra(true);
@@ -88,10 +95,12 @@ function App() {
     try {
       const API_URL = import.meta.env.VITE_API_URL;
 
+      const interestsToSend = interests.trim() === "" ? "general sightseeing" : interests;
+
       const res = await fetch(`${API_URL}/api/generate-suggestions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destination, interests }),
+        body: JSON.stringify({ destination, interests: interestsToSend }),
       });
       if (!res.ok) throw new Error("Failed to generate extra activities");
       const data = await res.json();
