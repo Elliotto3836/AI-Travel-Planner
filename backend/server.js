@@ -72,7 +72,6 @@ app.post('/api/generate-suggestions', async (req, res) => {
   const prompt = `
 You are an AI travel assistant. Suggest 8–12 extra activities for ${destination} considering interests: ${interests}.
 Follow these rules strictly:
-- Output **valid JSON only**.
 - Format as a JSON array of strings:
 [
   "Activity 1",
@@ -81,6 +80,8 @@ Follow these rules strictly:
 ]
 - Do NOT include times or assign them to specific days.
 - Keep activities realistic, fun, and specific.
+- Output **valid JSON only**. Do NOT include any extra text, comments, or explanation.
+- Ensure all JSON keys and values are properly quoted.
 `;
 
   try {
@@ -103,7 +104,7 @@ Follow these rules strictly:
 });
 
 app.get('/', (req, res) => {
-  res.redirect('http://localhost:52502');
+  res.redirect('/api/ping');
 });
 
 async function startServer() {
