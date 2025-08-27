@@ -200,7 +200,6 @@ function App() {
         ...prev,
         [targetContainer]: [...(prev[targetContainer] || []), activity],
       }));
-      return;
     }
 
     // Reorder within same day
@@ -214,7 +213,6 @@ function App() {
       }));
     }
   };
-
 
   return (
     <div
@@ -257,36 +255,38 @@ function App() {
           requestAnimationFrame(() => setActiveDrag(null));
         }}
       >
-        <div className="flex gap-4 px-4 relative">
+        <div className="flex min-h-screen w-full relative">
           {/* Extra Panel */}
           {itineraryGenerated && extraActivities.length > 0 && (
             <div
-              className={`w-80 p-4 border-l sticky top-0 h-screen flex-shrink-0 overflow-y-auto transform transition-transform duration-300 ${
-                extraPanelVisible ? "translate-x-0" : "translate-x-full"
-              }`}
+              className={`transition-all duration-300 flex-shrink-0 overflow-y-auto h-screen
+                ${extraPanelVisible ? "w-80 p-4 border-r" : "w-0 p-0 border-0"}
+              `}
               style={{
                 backgroundColor: colors.panel,
                 borderColor: colors.border,
                 color: colors.text,
+                minWidth: extraPanelVisible ? "20rem" : "0",
               }}
             >
-              <div className="flex justify-between items-center mb-3">
+              <div className={`flex justify-between items-center mb-3 ${extraPanelVisible ? "" : "hidden"}`}>
                 <h3 className="text-lg font-semibold">Extra Activities</h3>
                 <button
                   style={{
                     background: "none",
                     color: colors.accent,
                   }}
-                  onClick={() => setExtraPanelVisible(false)}
-                >
+                  onClick={() => setExtraPanelVisible(false)}>
                   Hide
                 </button>
               </div>
-              <SortableContext items={extraActivities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-                {extraActivities.map((activity) => (
-                  <SortableItem key={activity.id} id={activity.id} activity={activity} container="extra" colors={colors} />
-                ))}
-              </SortableContext>
+              <div className={extraPanelVisible ? "" : "hidden"}>
+                <SortableContext items={extraActivities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                  {extraActivities.map((activity) => (
+                    <SortableItem key={activity.id} id={activity.id} activity={activity} container="extra" colors={colors} />
+                  ))}
+                </SortableContext>
+              </div>
             </div>
           )}
 
@@ -294,7 +294,7 @@ function App() {
           {!extraPanelVisible && itineraryGenerated && extraActivities.length > 0 && (
             <button
               onClick={() => setExtraPanelVisible(true)}
-              className="fixed top-40 left-4 px-3 py-1 rounded z-50"
+              className="absolute top-40 left-0 px-3 py-1 rounded z-50"
               style={{
                 backgroundColor: colors.accent,
                 color: colors.buttonText,
@@ -305,7 +305,7 @@ function App() {
           )}
 
           {/* Main Content */}
-          <div className="flex-1">
+          <div className="flex-1 transition-all duration-300 min-h-screen py-6 px-4">
             {/* Form */}
             <form onSubmit={generateItinerary} className="flex flex-col gap-3 mb-4">
               <input
