@@ -14,6 +14,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import Hero from "./components/Hero";
+import Navbar from "./components/Navbar";
 
 const nord = {
   light: {
@@ -56,6 +58,8 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [activeDrag, setActiveDrag] = useState(null);
 
+
+  
   const colors = darkMode ? nord.dark : nord.light;
 
   useEffect(() => {
@@ -215,15 +219,16 @@ function App() {
   };
 
   return (
-    <div
-      className="min-h-screen w-screen py-6 transition-colors duration-500"
+    <div className="min-h-screen w-screen py-6 transition-colors duration-500"
       style={{
         backgroundColor: colors.background,
         color: colors.text,
-      }}
-    >
+      }}>
+
+        <Navbar theme={colors}/>
+        <Hero theme={colors}/>
       <button
-        className="fixed top-4 right-4 p-3 rounded-full shadow hover:scale-105 transition"
+        className="fixed top-4 right-4 p-3 rounded-full shadow hover:scale-105 z-50 transition"
         style={{
           backgroundColor: colors.accent,
           color: colors.buttonText,
@@ -233,14 +238,25 @@ function App() {
         {darkMode ? "🌞" : "🌙"}
       </button>
 
+      {/* Show Panel Button on left */}
+          {!extraPanelVisible && itineraryGenerated && extraActivities.length > 0 && (
+            <button
+              onClick={() => setExtraPanelVisible(true)}
+              className="fixed top-4 left-4 px-3 py-1 rounded z-50"
+              style={{
+                backgroundColor: colors.accent,
+                color: colors.buttonText,
+              }}>
+              Show Extra Activities
+            </button>
+          )}
+
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold" style={{ color: colors.text }}>
-          AI Travel Planner!
+          Begin your adventure by picking your destination and activites!
         </h1>
-        <p className="text-lg mt-1" style={{ color: colors.text, opacity: 0.7 }}>
-          by Elliot Zheng
-        </p>
+
       </div>
 
       <DndContext
@@ -259,7 +275,7 @@ function App() {
           {/* Extra Panel */}
           {itineraryGenerated && extraActivities.length > 0 && (
             <div
-              className={`transition-all duration-300 flex-shrink-0 overflow-y-auto h-screen
+              className={`fixed top-0 left-0 z-40 transition-all duration-300 overflow-y-auto h-screen
                 ${extraPanelVisible ? "w-80 p-4 border-r" : "w-0 p-0 border-0"}
               `}
               style={{
@@ -290,22 +306,10 @@ function App() {
             </div>
           )}
 
-          {/* Show Panel Button on left */}
-          {!extraPanelVisible && itineraryGenerated && extraActivities.length > 0 && (
-            <button
-              onClick={() => setExtraPanelVisible(true)}
-              className="absolute top-40 left-0 px-3 py-1 rounded z-50"
-              style={{
-                backgroundColor: colors.accent,
-                color: colors.buttonText,
-              }}
-            >
-              Show Extra Activities
-            </button>
-          )}
+          
 
           {/* Main Content */}
-          <div className="flex-1 transition-all duration-300 min-h-screen py-6 px-4">
+          <div className={`flex-1 transition-all duration-300 min-h-screen py-6 px-4 z-10${extraPanelVisible ? "ml-80" : "ml-0"}`}>
             {/* Form */}
             <form onSubmit={generateItinerary} className="flex flex-col gap-3 mb-4">
               <input
