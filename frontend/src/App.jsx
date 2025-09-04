@@ -194,7 +194,6 @@ function App() {
     const sourceContainer = active.data.current.container;
     const targetContainer = over.data.current.container;
 
-    // Extra → Day
     if (sourceContainer === "extra" && targetContainer.startsWith("Day")) {
       const idx = extraActivities.findIndex((a) => a.id === active.id);
       if (idx === -1) return;
