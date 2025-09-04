@@ -253,7 +253,7 @@ function App() {
 
       {/* Header */}
       <div className="text-center mb-4 mt-4">
-        <h1 className="text-4xl font-bold" style={{ color: colors.text }}>
+        <h1 className="text-2xl font-bold" style={{ color: colors.text }}>
           Begin your adventure by picking your destination and activites!
         </h1>
 
